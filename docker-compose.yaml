@@ -1,0 +1,37 @@
+version: '3.7'
+
+services:
+  nginx:
+    image: nginx:latest
+    ports:
+      - "80:80"
+    volumes: 
+      - ./:/usr/src/app/
+      - ./config/nginx:/etc/nginx/nginx.conf.d
+    depends_on: 
+      - web
+      - react
+ 
+  web:
+    build: .
+    #command: python manage.py runserver 0.0.0.0:8000
+    command: bash -c "python manage.py makemigrations element group item question report && 
+      python manage.py migrate && 
+      python make_script.py &&
+      gunicorn -b 0.0.0.0:8000 cardiology_api.wsgi:application -t 400 -w 0 --workers 3"
+    volumes:
+      - .:/usr/src/app/
+      - ./static:/usr/src/app/static:cached
+    ports:
+      - 8000:8000
+
+  react:
+    build: ./frontend
+    command: npm start
+    volumes:
+      - /usr/src/app/node_modules
+      - ./frontend:/usr/src/app
+    ports:
+      - 3000:3000
+    depends_on: 
+      - web
